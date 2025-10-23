@@ -143,17 +143,6 @@ const DEFAULTS = {
   night: null  // {teams:[ [p1,p2], ... ], rounds:[ [{home,away,result}]... ], cur:0, bonusPerWin:number}
 };
 
-let state = { players: [], matches: [] }; // start empty; we'll fill this later
-
-document.addEventListener('DOMContentLoaded', () => {
-  loadSeasonFromSheets()
-    .then(() => console.log("Loaded live data from Google Sheets"))
-    .catch(err => {
-      console.error("Error loading from Sheets", err);
-      render(); // fallback to blank UI
-    });
-});
-
 async function fetchTextNoCache(url) {
   const bust = (url.includes('?') ? '&' : '?') + '_=' + Date.now();
   const res = await fetch(url + bust, { cache: 'no-store' });
@@ -212,6 +201,17 @@ async function loadSeasonFromSheets() {
 
   render(); // your existing render() updates the UI
 }
+
+let state = { players: [], matches: [] }; // start empty; we'll fill this later
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadSeasonFromSheets()
+    .then(() => console.log("Loaded live data from Google Sheets"))
+    .catch(err => {
+      console.error("Error loading from Sheets", err);
+      render(); // fallback to blank UI
+    });
+});
 
 function byPlayerId(id) {
   return state.players.find(p => p.id === id);
