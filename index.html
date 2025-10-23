@@ -1,618 +1,199 @@
-<!doctype html> 
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Euchre Club — Teams & Round-Robin</title>
-<style>
-  :root { --gap: 12px; }
-  * { box-sizing: border-box; }
-  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; color: #111; background: #fafafa; }
-  header { padding: 20px clamp(14px, 4vw, 40px); background: white; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 2; }
-  h1 { margin: 0 0 6px; font-size: clamp(20px, 4vw, 32px); }
-  .sub { color: #666; font-size: 0.95rem; }
-  main { padding: 20px clamp(14px, 4vw, 40px); display: grid; gap: var(--gap); grid-template-columns: 1fr; }
-  @media(min-width: 1080px) { main { grid-template-columns: 2fr 1fr; align-items: start; } }
-  section { background: white; border: 1px solid #eee; border-radius: 12px; padding: 16px; }
-  section h2 { margin: 0 0 10px; font-size: 1.2rem; }
-  .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
-  input, select, button, textarea { font: inherit; padding: 10px 12px; border: 1px solid #ddd; border-radius: 10px; background: #fff; }
-  input:focus, select:focus, textarea:focus { outline: 2px solid #d9e6ff; border-color: #8fb4ff; }
-  button { border: 1px solid #ddd; cursor: pointer; }
-  button.primary { border-color: #2563eb; color: white; background: #2563eb; }
-  button.ghost { background: #f6f8ff; }
-  button.link { border: none; background: transparent; color: #2563eb; padding: 0; }
-  table { width: 100%; border-collapse: collapse; }
-  th, td { text-align: left; padding: 10px; border-bottom: 1px solid #f0f0f0; }
-  th { font-weight: 600; color: #333; background: #fcfcff; position: sticky; top: 0; }
-  .pill { display:inline-block; padding: 2px 8px; border-radius: 999px; background:#f2f4ff; font-size:12px; color:#424874; }
-  .grid { display: grid; gap: 10px; }
-  .two { grid-template-columns: 1fr 1fr; }
-  .three { grid-template-columns: 1fr 1fr 1fr; }
-  .muted { color:#666; }
-  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-  details summary { cursor: pointer; user-select: none; }
-  .foot { margin-top: 8px; font-size: 12px; color: #777; }
-  .danger { color: #b00020; }
-  .nowrap { white-space: nowrap; }
-  .chip { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid #ddd; border-radius:999px; background:#fff; }
-  .chip input { transform: scale(1.1); }
-  .team-card { border:1px dashed #d9d9ff; padding:10px; border-radius:10px; background:#fafaff; }
-  .round-card { border:1px solid #eee; border-radius:10px; padding:10px; background:#fff; }
-  .match { display:flex; gap:10px; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px dashed #eee; }
-  .match:last-child { border-bottom:none; }
-  .bye { color:#888; font-style: italic; }
-  .badge { padding:2px 8px; border-radius:999px; background:#eef6ff; font-size:12px; }
-</style>
+  <meta charset="UTF-8">
+  <title>Euchre Club Leaderboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2em; background: #f4f7f6; color: #333; }
+    h1 { color: #275f49; }
+    button { margin: 4px; padding: 6px 12px; background: #275f49; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #357a5f; }
+    table { border-collapse: collapse; width: 100%; margin-top: 1em; background: white; }
+    th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; }
+    th { background: #e4f2d4; }
+    input[type=text] { padding: 5px; margin: 4px; }
+    .section { background: white; padding: 1em; border-radius: 6px; margin-bottom: 1em; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  </style>
 </head>
 <body>
-<header>
-  <h1>🦊 Euchre Club</h1>
-  <div class="sub">Fixed teams for the night • automatic round-robin with BYEs • per-player scoring from team results.</div>
-</header>
 
-<main>
-  <!-- Leaderboard -->
-  <section id="leaderboardSection">
-    <div class="row" style="justify-content:space-between;">
-      <h2>Leaderboard</h2>
-      <div class="controls">
-        <button class="ghost" id="exportBtn">Export</button>
-        <label class="ghost" style="padding: 8px 12px; border-radius:10px; border:1px dashed #ccc; cursor:pointer;">
-          Import <input type="file" id="importInput" accept="application/json" hidden />
-        </label>
-        <button id="resetSeasonBtn" class="ghost danger" title="Set all stats to zero but keep players & history">Reset season</button>
-        <button id="resetAllBtn" class="ghost danger">Factory reset</button>
-      </div>
-    </div>
+<h1>Euchre Club Leaderboard</h1>
 
-    <div class="controls">
-      <span class="pill">Scoring</span>
-      <label class="muted">Win = <input id="cfgWinPts" type="number" step="1" min="0" style="width:80px" /></label>
-      <label class="muted">Bonus (optional) = <input id="cfgBonusPts" type="number" step="1" min="0" style="width:80px" /></label>
-      <button id="saveCfgBtn">Save</button>
-    </div>
+<div class="section">
+  <h3>Add Player</h3>
+  <input id="newPlayerName" type="text" placeholder="Player name">
+  <button id="addPlayerBtn">Add Player</button>
+</div>
 
-    <div style="overflow:auto; max-height: 60vh; border:1px solid #f1f1f7; border-radius:10px;">
-      <table>
-        <thead>
-          <tr>
-            <th>#</th><th>Player</th><th>Points</th><th>W</th><th>L</th><th>Win%</th>
-          </tr>
-        </thead>
-        <tbody id="leaderboardBody"></tbody>
-      </table>
-    </div>
-    <div class="foot">Sorted by Points ↓, then Wins ↓, then Name A–Z. Points are **per player**, coming from team results.</div>
-  </section>
+<div class="section">
+  <h3>Generate Schedule</h3>
+  <button id="lockTeamsBtn">Lock Teams & Build Schedule</button>
+</div>
 
-  <!-- Right column: Night setup & rounds -->
-  <section id="nightSection">
-    <h2>Tonight’s Play</h2>
+<div class="section">
+  <h3>Lock Results</h3>
+  <button id="lockResultsBtn">Lock Results</button>
+</div>
 
-    <details open>
-      <summary><strong>1) Add players</strong></summary>
-      <div class="controls" style="margin-top:10px;">
-        <input id="newPlayerName" placeholder="Name (e.g., Alex P.)" />
-        <button id="addPlayerBtn" class="primary">Add</button>
-      </div>
-      <div id="allPlayers" class="controls" style="flex-wrap:wrap;"></div>
-    </details>
-
-    <details open>
-      <summary><strong>2) Select who’s playing tonight & make teams</strong></summary>
-      <div class="muted" style="margin-top:8px;">Select an <em>even</em> number of players (≥ 4). They’ll be paired into fixed teams of two.</div>
-      <div id="activeList" class="controls" style="flex-wrap:wrap; margin-top:10px;"></div>
-      <div class="controls">
-        <button id="randomizeTeamsBtn" class="ghost">🎲 Randomize pairs</button>
-        <button id="lockTeamsBtn" class="primary">Lock teams & build schedule</button>
-      </div>
-
-      <div id="teamsEditor" class="grid two" style="margin-top:8px;"></div>
-      <div class="foot">Tip: hit “Randomize pairs” until you like the pairings, or manually adjust each select.</div>
-    </details>
-
-    <details id="roundsBlock">
-      <summary><strong>3) Play rounds & record results</strong></summary>
-      <div id="roundHeader" class="row" style="margin:10px 0;"></div>
-      <div id="roundView" class="round-card"></div>
-      <div class="row" style="margin-top:10px;">
-        <button id="prevRoundBtn" class="ghost">◀︎ Prev</button>
-        <button id="nextRoundBtn" class="ghost">Next ▶︎</button>
-        <span id="roundProgress" class="muted"></span>
-      </div>
-    </details>
-
-    <details>
-      <summary><strong>Recent matches</strong></summary>
-      <div id="recent" class="grid" style="margin-top:10px;"></div>
-    </details>
-  </section>
-</main>
+<div class="section">
+  <h3>Leaderboard</h3>
+  <button id="refreshBtn">🔄 Refresh Standings</button>
+  <table id="leaderboardTbl">
+    <thead><tr><th>Player</th><th>Wins</th><th>Losses</th><th>Points</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</div>
 
 <script>
-/* ------------------ Data ------------------ */
-const PLAYERS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRh-pC5Q2IvZ1X0wxSs_b58o22uLVGFeEHVLEblGhwZAbFmTEzpB2DdoUz6gr7hysH-ECOKq8xJDt6A/pub?gid=0&single=true&output=csv';
-const MATCHES_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRh-pC5Q2IvZ1X0wxSs_b58o22uLVGFeEHVLEblGhwZAbFmTEzpB2DdoUz6gr7hysH-ECOKq8xJDt6A/pub?gid=1957930751&single=true&output=csv';
-  
-const STORAGE_KEY = 'euchreClub.rr.v1';
-const DEFAULTS = {
-  config: { winPoints: 2, bonusPointsDefault: 0 },
-  players: [], // {id, name, wins, losses, points}
-  matches: [], // history across nights
-  night: null  // {teams:[ [p1,p2], ... ], rounds:[ [{home,away,result}]... ], cur:0, bonusPerWin:number}
-};
+// === CONFIGURATION ===
+const PLAYERS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS_zE09fFB-tsg-_WnU7nkcVWOZGFyD0584JWVfYc9cCAYyyDCU51YCXqNUqA2et0vBKmEDSlQWZoph/pub?gid=640638490&single=true&output=csv';
+const MATCHES_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS_zE09fFB-tsg-_WnU7nkcVWOZGFyD0584JWVfYc9cCAYyyDCU51YCXqNUqA2et0vBKmEDSlQWZoph/pub?gid=0&single=true&output=csv';
+const APP_URL = 'https://script.google.com/macros/s/AKfycbyi5YVluWgLa__RdLnDYXMykp7OAJ6yjo9U_J5ZLtjQnL-B4pYvxQHBnzFtoWi9L42u/exec';
+const SECRET_KEY = 'Euchre-club';
 
-async function fetchTextNoCache(url) {
+// === STATE ===
+let state = { players: [], matches: [] };
+
+// === UTILITIES ===
+async function fetchCSV(url) {
   const bust = (url.includes('?') ? '&' : '?') + '_=' + Date.now();
   const res = await fetch(url + bust, { cache: 'no-store' });
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  return res.text();
+  const text = await res.text();
+  return text.trim().split('\n').map(line => line.split(','));
 }
 
-async function loadSeasonFromSheets() {
-  const [playersText, matchesText] = await Promise.all([
-    fetchTextNoCache(PLAYERS_URL),
-    fetchTextNoCache(MATCHES_URL),
-  ]);
-
-  const playersRows = (PARSE_TSV ? parseTSV(playersText) : parseCSV(playersText));
-  const matchesRows = (PARSE_TSV ? parseTSV(matchesText) : parseCSV(matchesText));
-
-  // players: id,name
-  const [ph, ...pData] = playersRows;
-  const pIdx = { id: ph.indexOf('id'), name: ph.indexOf('name') };
-  const players = pData
-    .filter(r => r[pIdx.id])
-    .map(r => ({ id: r[pIdx.id], name: r[pIdx.name] || r[pIdx.id] }));
-
-  // matches: ts,teamA1,teamA2,teamB1,teamB2,winner,bonus,winPts,notes
-  const [mh, ...mData] = matchesRows;
-  const mIdx = {
-    ts: mh.indexOf('ts'),
-    A1: mh.indexOf('teamA1'),
-    A2: mh.indexOf('teamA2'),
-    B1: mh.indexOf('teamB1'),
-    B2: mh.indexOf('teamB2'),
-    winner: mh.indexOf('winner'),
-    bonus: mh.indexOf('bonus'),
-    winPts: mh.indexOf('winPts'),
-    notes: mh.indexOf('notes'),
-  };
-  const matches = mData
-    .filter(r => r[mIdx.ts] && r[mIdx.winner]) // basic sanity
-    .map(r => ({
-      ts: Number(r[mIdx.ts]),
-      teamA: [r[mIdx.A1], r[mIdx.A2]],
-      teamB: [r[mIdx.B1], r[mIdx.B2]],
-      winner: r[mIdx.winner],
-      bonus: Number(r[mIdx.bonus] || 0),
-      winPts: Number(r[mIdx.winPts] || 0),
-      notes: r[mIdx.notes] || '',
-    }))
-    .sort((a,b) => a.ts - b.ts);
-
-  // Update app state
-  state.players = players.map(p => ({ ...p, wins: 0, losses: 0, points: 0 }));
-  state.matches = matches;
-
-  // Recompute leaderboard from matches
-  recomputeStatsFromMatches();
-
-  render(); // your existing render() updates the UI
-}
-
-let state = { players: [], matches: [] }; // start empty; we'll fill this later
-
-document.addEventListener('DOMContentLoaded', () => {
-  loadSeasonFromSheets()
-    .then(() => console.log("Loaded live data from Google Sheets"))
-    .catch(err => {
-      console.error("Error loading from Sheets", err);
-      render(); // fallback to blank UI
-    });
-});
-
-function byPlayerId(id) {
-  return state.players.find(p => p.id === id);
-}
-
-function recomputeStatsFromMatches() {
-  // zero out
-  for (const p of state.players) { p.wins = 0; p.losses = 0; p.points = 0; }
-
+function recomputeStats() {
+  for (const p of state.players) { p.wins=0; p.losses=0; p.points=0; }
   for (const m of state.matches) {
-    const winners = (m.winner === 'A') ? m.teamA : m.teamB;
-    const losers  = (m.winner === 'A') ? m.teamB : m.teamA;
-
+    if (!m.winner) continue;
+    const winners = m.winner === 'A' ? m.teamA : m.teamB;
+    const losers = m.winner === 'A' ? m.teamB : m.teamA;
     for (const id of winners) {
-      const p = byPlayerId(id); if (!p) continue;
-      p.wins += 1;
-      p.points += (m.winPts || 0) + (m.bonus || 0);
+      const p = state.players.find(x=>x.id===id);
+      if (p) { p.wins++; p.points += (m.winPts||0)+(m.bonus||0); }
     }
     for (const id of losers) {
-      const p = byPlayerId(id); if (!p) continue;
-      p.losses += 1;
+      const p = state.players.find(x=>x.id===id);
+      if (p) p.losses++;
     }
   }
 }
-  
-function parseCSV(text) {
-  // Minimal CSV parser handling quotes; good enough for Sheets publish
-  const rows = [];
-  let row = [], col = '', inQ = false;
-  for (let i=0;i<text.length;i++){
-    const c = text[i], n = text[i+1];
-    if (inQ) {
-      if (c === '"' && n === '"') { col += '"'; i++; }
-      else if (c === '"') { inQ = false; }
-      else { col += c; }
-    } else {
-      if (c === '"') inQ = true;
-      else if (c === ',') { row.push(col); col = ''; }
-      else if (c === '\n') { row.push(col); rows.push(row); row = []; col = ''; }
-      else if (c === '\r') { /* ignore */ }
-      else { col += c; }
-    }
+
+function renderLeaderboard() {
+  recomputeStats();
+  const tbody = document.querySelector('#leaderboardTbl tbody');
+  tbody.innerHTML = '';
+  const sorted = [...state.players].sort((a,b)=>b.points-a.points || b.wins-a.wins);
+  for (const p of sorted) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${p.name}</td><td>${p.wins}</td><td>${p.losses}</td><td>${p.points}</td>`;
+    tbody.appendChild(tr);
   }
-  row.push(col); rows.push(row);
-  return rows;
 }
 
-function loadState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return structuredClone(DEFAULTS);
-    const s = JSON.parse(raw);
-    s.config ??= { ...DEFAULTS.config };
-    s.players ??= [];
-    s.matches ??= [];
-    s.night ??= null;
-    for (const p of s.players) { p.wins ??= 0; p.losses ??= 0; p.points ??= 0; }
-    return s;
-  } catch { return structuredClone(DEFAULTS); }
-}
-function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); render(); }
-function uid() { return Math.random().toString(36).slice(2,10); }
-function byId(id){ return state.players.find(p=>p.id===id); }
-function esc(s){ return String(s).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
-function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
-
-/* ------------- DOM refs ------------- */
-const els = {
-  leaderboardBody: document.getElementById('leaderboardBody'),
-  exportBtn: document.getElementById('exportBtn'),
-  importInput: document.getElementById('importInput'),
-  resetSeasonBtn: document.getElementById('resetSeasonBtn'),
-  resetAllBtn: document.getElementById('resetAllBtn'),
-  cfgWinPts: document.getElementById('cfgWinPts'),
-  cfgBonusPts: document.getElementById('cfgBonusPts'),
-  saveCfgBtn: document.getElementById('saveCfgBtn'),
-  newPlayerName: document.getElementById('newPlayerName'),
-  addPlayerBtn: document.getElementById('addPlayerBtn'),
-  allPlayers: document.getElementById('allPlayers'),
-  activeList: document.getElementById('activeList'),
-  teamsEditor: document.getElementById('teamsEditor'),
-  randomizeTeamsBtn: document.getElementById('randomizeTeamsBtn'),
-  lockTeamsBtn: document.getElementById('lockTeamsBtn'),
-  roundsBlock: document.getElementById('roundsBlock'),
-  roundHeader: document.getElementById('roundHeader'),
-  roundView: document.getElementById('roundView'),
-  prevRoundBtn: document.getElementById('prevRoundBtn'),
-  nextRoundBtn: document.getElementById('nextRoundBtn'),
-  roundProgress: document.getElementById('roundProgress'),
-  recent: document.getElementById('recent'),
-};
-
-/* -------- Leaderboard -------- */
-function renderLeaderboard(){
-  const rows = state.players.slice().sort((a,b)=>{
-    if (b.points!==a.points) return b.points-a.points;
-    if (b.wins!==a.wins) return b.wins-a.wins;
-    return a.name.localeCompare(b.name);
-  }).map((p,i)=>{
-    const g = p.wins+p.losses;
-    const wp = g? Math.round((p.wins/g)*100)+'%':'—';
-    return `<tr><td>${i+1}</td><td>${esc(p.name)}</td><td><strong>${p.points}</strong></td><td>${p.wins}</td><td>${p.losses}</td><td>${wp}</td></tr>`;
-  }).join('');
-  els.leaderboardBody.innerHTML = rows || `<tr><td colspan="6" class="muted">Add players to get started.</td></tr>`;
-}
-
-/* -------- Players UI -------- */
-function chip(id, label, checked=false, where='active'){
-  const attr = where==='active' ? `data-active-id="${id}"` : `data-any-id="${id}"`;
-  return `<label class="chip"><input type="checkbox" ${attr} ${checked?'checked':''}> ${esc(label)}</label>`;
-}
-function renderPlayerChips(){
-  const sorted = state.players.slice().sort((a,b)=>a.name.localeCompare(b.name));
-  els.allPlayers.innerHTML = sorted.map(p => chip(p.id, p.name, false, 'any')).join('') || `<div class="muted">No players yet.</div>`;
-  els.activeList.innerHTML = sorted.map(p => chip(p.id, p.name, false, 'active')).join('');
-}
-
-/* -------- Team editor (pairs of two) -------- */
-let scratchActiveIds = [];   // tonight’s selected players (even)
-let scratchTeams = [];       // [[id1,id2], ...]
-
-function currentActiveIds(){
-  return Array.from(els.activeList.querySelectorAll('input[data-active-id]:checked')).map(cb=>cb.getAttribute('data-active-id'));
-}
-
-function drawTeamsEditor(){
-  // ensure pairs length matches
-  const options = state.players.slice().sort((a,b)=>a.name.localeCompare(b.name))
-    .map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');
-  els.teamsEditor.innerHTML = scratchTeams.length
-    ? scratchTeams.map((pair,idx)=>`
-      <div class="team-card">
-        <div class="muted">Team ${idx+1}</div>
-        <div class="grid two">
-          <select data-team="${idx}" data-slot="0">${options}</select>
-          <select data-team="${idx}" data-slot="1">${options}</select>
-        </div>
-      </div>
-    `).join('')
-    : `<div class="muted">Select players and hit “Randomize pairs”.</div>`;
-
-  // set selected values
-  Array.from(els.teamsEditor.querySelectorAll('select')).forEach(sel=>{
-    const t = Number(sel.getAttribute('data-team'));
-    const s = Number(sel.getAttribute('data-slot'));
-    sel.value = scratchTeams[t]?.[s] || '';
-    sel.addEventListener('change', onTeamSelectChange);
-  });
-}
-
-function onTeamSelectChange(e){
-  const sel = e.target;
-  const t = Number(sel.getAttribute('data-team'));
-  const s = Number(sel.getAttribute('data-slot'));
-  const val = sel.value;
-  // prevent duplicate seating of same player across all slots
-  const flat = scratchTeams.flat();
-  const otherIndex = flat.findIndex((id,idx)=> id===val && !(Math.floor(idx/2)===t && (idx%2)===s));
-  if (otherIndex>=0){ alert('That player is already on another team this night.'); sel.value = scratchTeams[t][s] || ''; return; }
-  scratchTeams[t][s] = val;
-}
-
-els.randomizeTeamsBtn.addEventListener('click', ()=>{
-  scratchActiveIds = currentActiveIds();
-  if (scratchActiveIds.length < 4 || scratchActiveIds.length % 2 !== 0){
-    alert('Select an even number of players (at least 4).');
-    return;
-  }
-  const ids = shuffle(scratchActiveIds);
-  scratchTeams = [];
-  for (let i=0;i<ids.length;i+=2) scratchTeams.push([ids[i], ids[i+1]]);
-  drawTeamsEditor();
-});
-
-els.lockTeamsBtn.addEventListener('click', ()=>{
-  if (!scratchTeams.length){ alert('Create teams first.'); return; }
-  // validate pairs: each is two distinct players and covers exactly selected set
-  const flat = scratchTeams.flat();
-  const unique = new Set(flat);
-  if (flat.length !== scratchActiveIds.length || unique.size !== flat.length){
-    alert('Invalid team setup. Ensure each selected player appears exactly once.');
-    return;
-  }
-  // build rounds schedule (round-robin with BYE if needed)
-  startNight(scratchTeams);
-  saveState();
-  // open rounds block
-  els.roundsBlock.open = true;
-});
-
-/* -------- Round-robin scheduler (circle method) -------- */
-function startNight(teams) {
-  // teams: [[id1,id2], ...]  -> we'll schedule by team index
-  const teamIdx = teams.map((_, i) => i);
-
-  let names = teamIdx.slice(); // indices we rotate
-  let bye = null;
-
-  // If odd number of teams, add a BYE slot
-  if (names.length % 2 === 1) {
-    bye = 'BYE';
-    names.push(bye);
-  }
-
-  const n = names.length;       // total tokens (teams + optional BYE)
-  const half = n / 2;
-  const rounds = [];
-
-  // Build n-1 rounds
-  for (let r = 0; r < n - 1; r++) {
-    const matches = [];
-    for (let i = 0; i < half; i++) {
-      const a = names[i];
-      const b = names[n - 1 - i];
-
-      if (a === bye || b === bye) {
-        const t = a === bye ? b : a; // the real team playing BYE
-        matches.push({ home: t, away: 'BYE', result: null });
-      } else {
-        matches.push({ home: a, away: b, result: null }); // result: 'home' | 'away'
-      }
-    }
-    rounds.push(matches);
-
-    // ✅ Correct rotation (circle method): keep first fixed, rotate the rest
-    const fixed = names[0];
-    const rest = names.slice(1);
-    rest.unshift(rest.pop());
-    names = [fixed, ...rest];
-  }
-
-  state.night = { teams, rounds, cur: 0 };
-  // NOTE: don't call saveState() here if you already call it after startNight()
-}
-  state.night = {
-    teams, // array of team arrays (player IDs)
-    rounds, // array of matches using indices or 'BYE'
-    cur: 0
+// === DATA LOADING ===
+async function loadSeason() {
+  const [pRows, mRows] = await Promise.all([fetchCSV(PLAYERS_URL), fetchCSV(MATCHES_URL)]);
+  const [ph, ...pData] = pRows;
+  const [mh, ...mData] = mRows;
+  const pIdx = { id: ph.indexOf('id'), name: ph.indexOf('name') };
+  state.players = pData.map(r => ({ id:r[pIdx.id], name:r[pIdx.name], wins:0, losses:0, points:0 }));
+  const mIdx = {
+    ts: mh.indexOf('ts'), A1: mh.indexOf('teamA1'), A2: mh.indexOf('teamA2'),
+    B1: mh.indexOf('teamB1'), B2: mh.indexOf('teamB2'),
+    winner: mh.indexOf('winner'), bonus: mh.indexOf('bonus'), winPts: mh.indexOf('winPts'), notes: mh.indexOf('notes')
   };
-
-/* -------- Round view & scoring -------- */
-function teamLabel(tok){
-  if (tok==='BYE') return 'BYE';
-  const pair = state.night.teams[tok];
-  const n1 = byId(pair[0])?.name || '???'; const n2 = byId(pair[1])?.name || '???';
-  return `${n1} & ${n2}`;
-}
-function renderRound(){
-  const N = state.night?.rounds?.length || 0;
-  if (!state.night || !N){
-    els.roundHeader.innerHTML = `<span class="muted">No schedule yet.</span>`;
-    els.roundView.innerHTML = '';
-    els.roundProgress.textContent = '';
-    return;
-  }
-  const r = state.night.cur;
-  els.roundHeader.innerHTML = `<span class="badge">Round ${r+1} of ${N}</span>`;
-  els.roundProgress.textContent = '';
-
-  const list = state.night.rounds[r].map((m,idx)=>{
-    if (m.away==='BYE' || m.home==='BYE'){
-      const t = m.home==='BYE' ? m.away : m.home;
-      return `<div class="match bye"><div>Table ${idx+1}: <strong>${esc(teamLabel(t))}</strong> has a BYE</div></div>`;
-    }
-    const h = esc(teamLabel(m.home));
-    const a = esc(teamLabel(m.away));
-    const result = m.result;
-    const mark = result ? `Winner: <strong>${result==='home'?h:a}</strong>` : '';
-    return `<div class="match">
-      <div>Table ${idx+1}: <strong>${h}</strong> vs <strong>${a}</strong></div>
-      <div class="row">
-        <button data-win="home" data-idx="${idx}" class="ghost">Home won</button>
-        <button data-win="away" data-idx="${idx}" class="ghost">Away won</button>
-        <span class="muted">${mark}</span>
-      </div>
-    </div>`;
-  }).join('');
-  els.roundView.innerHTML = list;
-
-  // wire result buttons
-  Array.from(els.roundView.querySelectorAll('button[data-win]')).forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const idx = Number(btn.getAttribute('data-idx'));
-      const side = btn.getAttribute('data-win'); // 'home' | 'away'
-      recordResult(r, idx, side);
-    });
-  });
-}
-
-function recordResult(roundIdx, matchIdx, side){
-  const m = state.night.rounds[roundIdx][matchIdx];
-  if (m.away==='BYE' || m.home==='BYE'){ return; }
-  if (m.result){ if(!confirm('Overwrite this result?')) return; }
-  m.result = side;
-
-  // apply per-player scoring from team result
-  const winnersTok = side==='home' ? m.home : m.away;
-  const losersTok  = side==='home' ? m.away : m.home;
-  const winPts = state.config.winPoints;
-  const bonus = Number(state.config.bonusPointsDefault)||0;
-
-  const winners = state.night.teams[winnersTok];
-  const losers = state.night.teams[losersTok];
-
-  for (const id of winners){ const p = byId(id); if (!p) continue; p.wins += 1; p.points += winPts + bonus; }
-  for (const id of losers){ const p = byId(id); if (!p) continue; p.losses += 1; }
-
-  // append to global match history
-  state.matches.push({
-    id: uid(),
-    ts: Date.now(),
-    teamA: state.night.teams[m.home],
-    teamB: state.night.teams[m.away],
-    winner: side==='home' ? 'A' : 'B',
-    bonus, winPts
-  });
-
-  saveState();
-}
-
-els.prevRoundBtn.addEventListener('click', ()=>{
-  if (!state.night) return;
-  state.night.cur = Math.max(0, state.night.cur-1);
-  saveState();
-});
-els.nextRoundBtn.addEventListener('click', ()=>{
-  if (!state.night) return;
-  state.night.cur = Math.min(state.night.rounds.length-1, state.night.cur+1);
-  saveState();
-});
-
-/* -------- Recent history -------- */
-function renderRecent(){
-  const items = state.matches.slice().sort((a,b)=>b.ts-a.ts).slice(0,12).map(m=>{
-    const [a1,a2] = m.teamA.map(byId).map(p=>p?.name||''); const [b1,b2] = m.teamB[0]==='BYE' || m.teamB[1]==='BYE'
-      ? ['BYE',''] : m.teamB.map(byId).map(p=>p?.name||'');
-    const w = m.winner==='A'?'Team A':'Team B';
-    const when = new Date(m.ts).toLocaleString();
-    const bonus = m.bonus?` (+${m.bonus} bonus/player)`:'';
-    return `<div class="muted">🕒 ${when}: <strong>${esc(a1)}</strong> & <strong>${esc(a2)}</strong> vs <strong>${esc(b1)}</strong> ${esc(b2?('& '+b2):'')} — winner: <strong>${w}</strong> (${m.winPts} pts/player${bonus})</div>`;
-  }).join('');
-  els.recent.innerHTML = items || `<div class="muted">No matches yet.</div>`;
-}
-
-/* -------- Config & Admin -------- */
-function renderConfig(){
-  els.cfgWinPts.value = state.config.winPoints;
-  els.cfgBonusPts.value = state.config.bonusPointsDefault;
-}
-els.saveCfgBtn.addEventListener('click', ()=>{
-  const win = parseInt(els.cfgWinPts.value||'0',10);
-  const bonus = parseInt(els.cfgBonusPts.value||'0',10);
-  if (Number.isFinite(win)) state.config.winPoints = win;
-  if (Number.isFinite(bonus)) state.config.bonusPointsDefault = bonus;
-  saveState();
-});
-els.addPlayerBtn.addEventListener('click', ()=>{
-  const name = els.newPlayerName.value.trim(); if (!name) return;
-  state.players.push({ id: uid(), name, wins:0, losses:0, points:0 });
-  els.newPlayerName.value = '';
-  saveState();
-});
-els.exportBtn.addEventListener('click', ()=>{
-  const blob = new Blob([JSON.stringify(state, null, 2)],{type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href=url; a.download='euchre-club-backup.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-});
-els.importInput.addEventListener('change', async (e)=>{
-  const f = e.target.files?.[0]; if (!f) return;
-  try{
-    const txt = await f.text(); const data = JSON.parse(txt);
-    if (!data.players || !data.matches) throw new Error('Invalid file');
-    state = data;
-    state.config ??= { ...DEFAULTS.config };
-    for (const p of state.players){ p.wins ??=0; p.losses ??=0; p.points ??=0; }
-    saveState(); alert('Import complete.');
-  }catch(err){ alert('Import failed: '+err.message); }
-  e.target.value = '';
-});
-els.resetSeasonBtn.addEventListener('click', ()=>{
-  if (!confirm('Reset season stats to zero (keep players & history)?')) return;
-  for (const p of state.players){ p.wins=0; p.losses=0; p.points=0; }
-  saveState();
-});
-els.resetAllBtn.addEventListener('click', ()=>{
-  if (!confirm('Factory reset EVERYTHING?')) return;
-  state = structuredClone(DEFAULTS);
-  saveState();
-});
-
-/* -------- Render root -------- */
-function render(){
+  state.matches = mData.map(r => ({
+    ts: Number(r[mIdx.ts]),
+    teamA:[r[mIdx.A1],r[mIdx.A2]],
+    teamB:[r[mIdx.B1],r[mIdx.B2]],
+    winner:r[mIdx.winner],
+    bonus:Number(r[mIdx.bonus]||0),
+    winPts:Number(r[mIdx.winPts]||0),
+    notes:r[mIdx.notes]
+  }));
   renderLeaderboard();
-  renderPlayerChips();
-  drawTeamsEditor();
-  renderRecent();
-  renderConfig();
-  renderRound();
-  // Checkboxes are static; no extra wiring needed
 }
-render();
+
+// === POST HELPERS ===
+async function postToApp(payload) {
+  payload.secret = SECRET_KEY;
+  const res = await fetch(APP_URL, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || 'Failed');
+  return data;
+}
+
+// === BUTTON HANDLERS ===
+document.getElementById('addPlayerBtn').addEventListener('click', async ()=>{
+  const name = document.getElementById('newPlayerName').value.trim();
+  if (!name) return alert('Enter a name.');
+  const id = name.toLowerCase().replace(/[^a-z0-9]+/g,'_');
+  try {
+    await postToApp({type:'player', id, name});
+    alert('Player added!');
+    await loadSeason();
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+});
+
+document.getElementById('lockTeamsBtn').addEventListener('click', async ()=>{
+  // simple pairing (random shuffle)
+  const ids = state.players.map(p=>p.id);
+  if (ids.length < 4) return alert('Need at least 4 players.');
+  for (let i = ids.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+  }
+  const teams = [];
+  for (let i=0;i<ids.length;i+=2) teams.push([ids[i],ids[i+1]]);
+  const matches = [];
+  for (let i=0;i<teams.length;i+=2) {
+    if (teams[i+1]) matches.push({A:teams[i], B:teams[i+1]});
+  }
+  try {
+    for (const m of matches) {
+      await postToApp({
+        type:'match',
+        ts: Date.now()+Math.floor(Math.random()*1000), // unique
+        teamA1:m.A[0], teamA2:m.A[1],
+        teamB1:m.B[0], teamB2:m.B[1],
+        winner:'', bonus:0, winPts:0, notes:'Scheduled'
+      });
+    }
+    alert('Schedule posted!');
+    await loadSeason();
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+});
+
+document.getElementById('lockResultsBtn').addEventListener('click', async ()=>{
+  const ts = prompt('Enter match timestamp (ts) to lock result:');
+  if (!ts) return;
+  const winner = prompt('Enter winner team (A or B):').toUpperCase();
+  const winPts = Number(prompt('Win points (e.g. 2):') || 0);
+  const bonus = Number(prompt('Bonus points (e.g. 1):') || 0);
+  const notes = prompt('Notes (optional):') || '';
+  try {
+    await postToApp({type:'update_match', ts:Number(ts), winner, winPts, bonus, notes});
+    alert('Result locked!');
+    await loadSeason();
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+});
+
+document.getElementById('refreshBtn').addEventListener('click', loadSeason);
+
+// === INIT ===
+loadSeason();
 </script>
+
 </body>
 </html>
