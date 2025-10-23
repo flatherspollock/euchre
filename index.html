@@ -132,6 +132,9 @@
 
 <script>
 /* ------------------ Data ------------------ */
+const PLAYERS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRh-pC5Q2IvZ1X0wxSs_b58o22uLVGFeEHVLEblGhwZAbFmTEzpB2DdoUz6gr7hysH-ECOKq8xJDt6A/pub?gid=0&single=true&output=csv';
+const MATCHES_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRh-pC5Q2IvZ1X0wxSs_b58o22uLVGFeEHVLEblGhwZAbFmTEzpB2DdoUz6gr7hysH-ECOKq8xJDt6A/pub?gid=1957930751&single=true&output=csv';
+  
 const STORAGE_KEY = 'euchreClub.rr.v1';
 const DEFAULTS = {
   config: { winPoints: 2, bonusPointsDefault: 0 },
@@ -140,7 +143,121 @@ const DEFAULTS = {
   night: null  // {teams:[ [p1,p2], ... ], rounds:[ [{home,away,result}]... ], cur:0, bonusPerWin:number}
 };
 
-let state = loadState();
+let state = { players: [], matches: [] }; // start empty; we'll fill this later
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadSeasonFromSheets()
+    .then(() => console.log("Loaded live data from Google Sheets"))
+    .catch(err => {
+      console.error("Error loading from Sheets", err);
+      render(); // fallback to blank UI
+    });
+});
+
+async function fetchTextNoCache(url) {
+  const bust = (url.includes('?') ? '&' : '?') + '_=' + Date.now();
+  const res = await fetch(url + bust, { cache: 'no-store' });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.text();
+}
+
+async function loadSeasonFromSheets() {
+  const [playersText, matchesText] = await Promise.all([
+    fetchTextNoCache(PLAYERS_URL),
+    fetchTextNoCache(MATCHES_URL),
+  ]);
+
+  const playersRows = (PARSE_TSV ? parseTSV(playersText) : parseCSV(playersText));
+  const matchesRows = (PARSE_TSV ? parseTSV(matchesText) : parseCSV(matchesText));
+
+  // players: id,name
+  const [ph, ...pData] = playersRows;
+  const pIdx = { id: ph.indexOf('id'), name: ph.indexOf('name') };
+  const players = pData
+    .filter(r => r[pIdx.id])
+    .map(r => ({ id: r[pIdx.id], name: r[pIdx.name] || r[pIdx.id] }));
+
+  // matches: ts,teamA1,teamA2,teamB1,teamB2,winner,bonus,winPts,notes
+  const [mh, ...mData] = matchesRows;
+  const mIdx = {
+    ts: mh.indexOf('ts'),
+    A1: mh.indexOf('teamA1'),
+    A2: mh.indexOf('teamA2'),
+    B1: mh.indexOf('teamB1'),
+    B2: mh.indexOf('teamB2'),
+    winner: mh.indexOf('winner'),
+    bonus: mh.indexOf('bonus'),
+    winPts: mh.indexOf('winPts'),
+    notes: mh.indexOf('notes'),
+  };
+  const matches = mData
+    .filter(r => r[mIdx.ts] && r[mIdx.winner]) // basic sanity
+    .map(r => ({
+      ts: Number(r[mIdx.ts]),
+      teamA: [r[mIdx.A1], r[mIdx.A2]],
+      teamB: [r[mIdx.B1], r[mIdx.B2]],
+      winner: r[mIdx.winner],
+      bonus: Number(r[mIdx.bonus] || 0),
+      winPts: Number(r[mIdx.winPts] || 0),
+      notes: r[mIdx.notes] || '',
+    }))
+    .sort((a,b) => a.ts - b.ts);
+
+  // Update app state
+  state.players = players.map(p => ({ ...p, wins: 0, losses: 0, points: 0 }));
+  state.matches = matches;
+
+  // Recompute leaderboard from matches
+  recomputeStatsFromMatches();
+
+  render(); // your existing render() updates the UI
+}
+
+function byPlayerId(id) {
+  return state.players.find(p => p.id === id);
+}
+
+function recomputeStatsFromMatches() {
+  // zero out
+  for (const p of state.players) { p.wins = 0; p.losses = 0; p.points = 0; }
+
+  for (const m of state.matches) {
+    const winners = (m.winner === 'A') ? m.teamA : m.teamB;
+    const losers  = (m.winner === 'A') ? m.teamB : m.teamA;
+
+    for (const id of winners) {
+      const p = byPlayerId(id); if (!p) continue;
+      p.wins += 1;
+      p.points += (m.winPts || 0) + (m.bonus || 0);
+    }
+    for (const id of losers) {
+      const p = byPlayerId(id); if (!p) continue;
+      p.losses += 1;
+    }
+  }
+}
+  
+function parseCSV(text) {
+  // Minimal CSV parser handling quotes; good enough for Sheets publish
+  const rows = [];
+  let row = [], col = '', inQ = false;
+  for (let i=0;i<text.length;i++){
+    const c = text[i], n = text[i+1];
+    if (inQ) {
+      if (c === '"' && n === '"') { col += '"'; i++; }
+      else if (c === '"') { inQ = false; }
+      else { col += c; }
+    } else {
+      if (c === '"') inQ = true;
+      else if (c === ',') { row.push(col); col = ''; }
+      else if (c === '\n') { row.push(col); rows.push(row); row = []; col = ''; }
+      else if (c === '\r') { /* ignore */ }
+      else { col += c; }
+    }
+  }
+  row.push(col); rows.push(row);
+  return rows;
+}
 
 function loadState() {
   try {
