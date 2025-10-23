@@ -286,38 +286,49 @@ els.lockTeamsBtn.addEventListener('click', ()=>{
 });
 
 /* -------- Round-robin scheduler (circle method) -------- */
-function startNight(teams){
-  // teams: [[id1,id2], ...]
-  // If odd team count, append a BYE token
-  const teamIdx = teams.map((_,i)=>i);
-  let names = teamIdx.slice();
+function startNight(teams) {
+  // teams: [[id1,id2], ...]  -> we'll schedule by team index
+  const teamIdx = teams.map((_, i) => i);
+
+  let names = teamIdx.slice(); // indices we rotate
   let bye = null;
-  if (teamIdx.length % 2 === 1){
+
+  // If odd number of teams, add a BYE slot
+  if (names.length % 2 === 1) {
     bye = 'BYE';
     names.push(bye);
   }
-  const n = names.length;
-  const rounds = [];
-  const half = n/2;
-  let arr = names.slice();
 
-  const totalRounds = n-1; // if odd originally, includes BYE each round
-  for (let r=0;r<totalRounds;r++){
+  const n = names.length;       // total tokens (teams + optional BYE)
+  const half = n / 2;
+  const rounds = [];
+
+  // Build n-1 rounds
+  for (let r = 0; r < n - 1; r++) {
     const matches = [];
-    for (let i=0;i<half;i++){
-      const home = arr[i], away = arr[n-1-i];
-      if (home===bye || away===bye){
-        const t = home===bye ? away : home;
-        matches.push({home:t, away:'BYE', result:null});
+    for (let i = 0; i < half; i++) {
+      const a = names[i];
+      const b = names[n - 1 - i];
+
+      if (a === bye || b === bye) {
+        const t = a === bye ? b : a; // the real team playing BYE
+        matches.push({ home: t, away: 'BYE', result: null });
       } else {
-        matches.push({home, away, result:null}); // result: 'home' | 'away'
+        matches.push({ home: a, away: b, result: null }); // result: 'home' | 'away'
       }
     }
     rounds.push(matches);
-    // rotate (keep first fixed)
-    arr = [arr[0]].concat([arr[n-1]].concat(arr.slice(1, n-1)));
+
+    // ✅ Correct rotation (circle method): keep first fixed, rotate the rest
+    const fixed = names[0];
+    const rest = names.slice(1);
+    rest.unshift(rest.pop());
+    names = [fixed, ...rest];
   }
 
+  state.night = { teams, rounds, cur: 0 };
+  // NOTE: don't call saveState() here if you already call it after startNight()
+}
   state.night = {
     teams, // array of team arrays (player IDs)
     rounds, // array of matches using indices or 'BYE'
